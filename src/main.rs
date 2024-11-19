@@ -1,8 +1,11 @@
 use bevy::prelude::*;
-use player::PlayerPLugin;
+use fly_cam::FlyCamPlugin;
+use player::PlayerPlugin;
 
+mod fly_cam;
 mod map_generator;
 mod player;
+mod settings;
 
 const RES: (f32, f32) = (0.9 * 1920.0, 0.9 * 1080.0);
 
@@ -18,7 +21,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(PlayerPLugin)
+        .add_plugins((PlayerPlugin, FlyCamPlugin))
         .add_systems(Startup, setup)
         .run();
 }

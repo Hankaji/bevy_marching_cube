@@ -1,11 +1,20 @@
-use bevy::prelude::*;
+use bevy::{
+    ecs::event::ManualEventReader,
+    input::mouse::MouseMotion,
+    prelude::*,
+    window::{CursorGrabMode, PrimaryWindow},
+};
 
-pub struct PlayerPLugin;
+use crate::{fly_cam::FlyCam, settings::MovementSettings};
 
-impl Plugin for PlayerPLugin {
+pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player)
-            .add_systems(Update, player_movement);
+        app.init_resource::<InputState>()
+            .init_resource::<MovementSettings>()
+            .add_systems(Startup, spawn_player)
+            .add_systems(Update, (player_movement, player_look));
     }
 }
 
@@ -16,6 +25,7 @@ fn spawn_player(mut commands: Commands) {
             transform: Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
+        FlyCam,
         Player,
     ));
 }
@@ -26,6 +36,7 @@ pub struct Player;
 fn player_movement(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
+    settings: Res<MovementSettings>,
     mut player_q: Query<&mut Transform, With<Player>>,
 ) {
     for mut player_transform in player_q.iter_mut() {
@@ -43,10 +54,54 @@ fn player_movement(
         if keys.pressed(KeyCode::KeyD) {
             dir += *player_transform.right();
         }
+        if keys.pressed(KeyCode::Space) {
+            dir += Vec3::Y;
+        }
+        if keys.pressed(KeyCode::ControlLeft) {
+            dir += Vec3::NEG_Y;
+        }
 
-        const VELOCITY: f32 = 6.0;
-
-        let movement = dir.normalize_or_zero() * VELOCITY * time.delta_seconds();
+        let movement = dir.normalize_or_zero() * settings.speed * time.delta_seconds();
         player_transform.translation += movement;
+    }
+}
+
+/// Keeps track of mouse motion events, pitch, and yaw
+#[derive(Resource, Default)]
+struct InputState {
+    reader_motion: ManualEventReader<MouseMotion>,
+}
+
+/// Handles looking around if cursor is locked
+fn player_look(
+    settings: Res<MovementSettings>,
+    primary_window: Query<&Window, With<PrimaryWindow>>,
+    mut state: ResMut<InputState>,
+    motion: Res<Events<MouseMotion>>,
+    mut query: Query<&mut Transform, With<FlyCam>>,
+) {
+    if let Ok(window) = primary_window.get_single() {
+        for mut transform in query.iter_mut() {
+            for ev in state.reader_motion.read(&motion) {
+                let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+                match window.cursor.grab_mode {
+                    CursorGrabMode::None => (),
+                    _ => {
+                        // Using smallest of height or width ensures equal vertical and horizontal sensitivity
+                        let window_scale = window.height().min(window.width());
+                        pitch -= (settings.sensitivity * ev.delta.y * window_scale).to_radians();
+                        yaw -= (settings.sensitivity * ev.delta.x * window_scale).to_radians();
+                    }
+                }
+
+                pitch = pitch.clamp(-1.54, 1.54);
+
+                // Order is important to prevent unintended roll
+                transform.rotation =
+                    Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
+            }
+        }
+    } else {
+        warn!("Primary window not found for `player_look`!");
     }
 }
