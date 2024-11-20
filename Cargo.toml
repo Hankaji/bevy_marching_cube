@@ -13,6 +13,7 @@ fastnoise-lite = "1.1.1"
 fnv = "1.0.7"
 lazy_static = "1.5.0"
 rand = "0.8.5"
+bevy_mod_billboard = "0.7.0"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

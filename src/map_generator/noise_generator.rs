@@ -1,6 +1,7 @@
+use bevy::prelude::Resource;
 use fastnoise_lite::FastNoiseLite;
 
-struct Noise;
+pub struct Noise;
 
 impl Noise {
     /// Generate a 3-Dimensional noise map which is converted into a 1-Dimensional array
@@ -55,6 +56,10 @@ impl Noise {
                     //
                     // const MAX_HEIGHT: f32 = 50_f32;
                     // noise_height = z as f32 - (noise_height * MAX_HEIGHT);
+                    // match (x, y, z) {
+                    //     (0..=1, 0..=1, 0..=1) => noise_map.push(-1.),
+                    //     _ => noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32)),
+                    // }
 
                     noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32));
                 }
@@ -65,8 +70,15 @@ impl Noise {
     }
 
     fn scalar_field(x: f32, y: f32, z: f32) -> f32 {
+        const RADIUS: f32 = 7.0;
+
+        const CENTER_X: f32 = 8.0;
+        const CENTER_Y: f32 = 8.0;
+        const CENTER_Z: f32 = 8.0;
+
+        // NOTE: Only for testing
         // Function for defining a sphrere r^2 = x^2 + y^2 + z^2
-        5.0 - (x.powi(2) + y.powi(2) + z.powi(2)).sqrt()
+        ((x - CENTER_X).powi(2) + (y - CENTER_Y).powi(2) + (z - CENTER_Z).powi(2)).sqrt() - RADIUS
     }
 }
 
@@ -75,10 +87,10 @@ impl Noise {
 /// data: A 1D vector hold a list of value in a 3D space
 /// Accessing this require both asix x, y and z in this formular
 /// `x + size * (y + size * z)`
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, Resource)]
 pub struct VoxelGrid {
     data: Vec<f32>,
-    size: usize,
+    pub size: usize,
     min: f32,
     max: f32,
 }

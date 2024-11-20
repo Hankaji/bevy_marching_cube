@@ -753,6 +753,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_billboard"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7fcf796f109d285725c5cbb4c38f6f93b809c7dbea14bc19c5b94ce01ad59de"
+dependencies = [
+ "bevy",
+ "bitflags 2.6.0",
+ "smallvec",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3029,6 +3040,7 @@ name = "project_t_revamped"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_mod_billboard",
  "fastnoise-lite",
  "fnv",
  "lazy_static",
