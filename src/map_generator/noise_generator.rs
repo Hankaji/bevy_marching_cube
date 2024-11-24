@@ -30,38 +30,33 @@ impl Noise {
         // let half_width = width as f32 / 2_f32;
         // let half_height = height as f32 / 2_f32;
 
-        for x in 0..size {
+        for z in 0..size {
             for y in 0..size {
-                for z in 0..size {
+                for x in 0..size {
                     let mut amplitude = 1f32;
                     let mut frequency = 1f32;
                     let mut noise_height = 0f32;
 
-                    // for _ in 0..octaves {
-                    //     // (x - half_width) let noise map zoom on the center when scale changes
-                    //     let sample_x = (x as f32 - half_width) / scale * frequency;
-                    //     let sample_y = (y as f32 - half_height) / scale * frequency;
-                    //
-                    //     // Get noise value and remapping it to 0..1 range
-                    //     let mut noise_val = noise.get_noise_2d(sample_x, sample_y);
-                    //     noise_val = (noise_val + 1.) / 2.;
-                    //
-                    //     // godot::global::godot_print!("value at ({x}, {y}): {noise_val}");
-                    //
-                    //     noise_height = noise_val * amplitude;
-                    //
-                    //     amplitude *= persistance;
-                    //     frequency *= lacunarity;
-                    // }
-                    //
-                    // const MAX_HEIGHT: f32 = 50_f32;
-                    // noise_height = z as f32 - (noise_height * MAX_HEIGHT);
-                    // match (x, y, z) {
-                    //     (0..=1, 0..=1, 0..=1) => noise_map.push(-1.),
-                    //     _ => noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32)),
-                    // }
+                    for _ in 0..octaves {
+                        // (x - half_width) let noise map zoom on the center when scale changes
+                        let sample_x = x as f32 / scale * frequency;
+                        let sample_z = z as f32 / scale * frequency;
 
-                    noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32));
+                        // Get noise value and remapping it to 0..1 range
+                        let mut noise_val = noise.get_noise_2d(sample_x, sample_z);
+                        noise_val = (noise_val + 1.) / 2.;
+
+                        noise_height = noise_val * amplitude;
+
+                        amplitude *= persistance;
+                        frequency *= lacunarity;
+                    }
+
+                    const MAX_HEIGHT: f32 = 20_f32;
+                    noise_height = (y) as f32 - (noise_height * MAX_HEIGHT);
+
+                    noise_map.push(noise_height);
+                    // noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32));
                 }
             }
         }

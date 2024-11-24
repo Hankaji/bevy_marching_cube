@@ -7,16 +7,17 @@ pub struct BevyConfigPlugin;
 
 impl Plugin for BevyConfigPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Project T Revamped".to_string(),
-                resizable: false,
-                resolution: RES.into(),
-                // mode: WindowMode::BorderlessFullscreen,
-                ..default()
-            }),
-            ..Default::default()
-        }))
-        .add_plugins(BillboardPlugin);
+        app.insert_resource(ClearColor(Color::srgb(0.4, 0.5, 0.9)))
+            .add_plugins(DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Project T Revamped".to_string(),
+                    resizable: false,
+                    resolution: RES.into(),
+                    // mode: WindowMode::BorderlessFullscreen,
+                    ..default()
+                }),
+                ..Default::default()
+            }))
+            .add_plugins(BillboardPlugin);
     }
 }

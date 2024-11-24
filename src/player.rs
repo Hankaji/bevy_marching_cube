@@ -12,7 +12,6 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputState>()
-            .init_resource::<MovementSettings>()
             .add_systems(Startup, spawn_player)
             .add_systems(Update, (player_movement, player_look));
     }
@@ -22,7 +21,7 @@ fn spawn_player(mut commands: Commands) {
     // camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(8.0, 8.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
         FlyCam,

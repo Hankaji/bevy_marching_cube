@@ -4,6 +4,7 @@ use debug::DebugPlugin;
 use fly_cam::FlyCamPlugin;
 use map_generator::MapGeneratorPlugin;
 use player::PlayerPlugin;
+use settings::SettingPlugin;
 
 mod bevyconf;
 mod debug;
@@ -16,6 +17,7 @@ fn main() {
     App::new()
         .add_plugins(DebugPlugin)
         .add_plugins(BevyConfigPlugin)
+        .add_plugins(SettingPlugin)
         .add_plugins((PlayerPlugin, FlyCamPlugin, MapGeneratorPlugin))
         .add_systems(Startup, setup)
         .run();
