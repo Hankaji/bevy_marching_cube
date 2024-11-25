@@ -6,14 +6,14 @@ use bevy::{
     prelude::*,
     reflect::List,
     render::{
-        mesh::{Indices, PrimitiveTopology},
+        mesh::{Indices, MeshVertexAttribute, PrimitiveTopology},
         render_asset::RenderAssetUsages,
     },
 };
 
 use super::{
     marching_table::{EDGES, TRIANGULATIONS, VERTICES},
-    noise_generator::VoxelGrid,
+    noise_generator::{Noise, VoxelGrid},
 };
 
 pub fn march_cube(
@@ -64,41 +64,35 @@ fn get_triangulation((x, y, z): (usize, usize, usize), voxel_grid: &VoxelGrid) -
 
 pub struct RenderChunk {
     chunk_coord: IVec3,
-    voxel_grid: VoxelGrid,
 }
 
 impl RenderChunk {
-    pub fn new(coord: IVec3) -> Self {
-        Self {
-            chunk_coord: coord,
-            voxel_grid: VoxelGrid::new(16),
-        }
+    pub fn new(chunk_coord: IVec3) -> Self {
+        Self { chunk_coord }
     }
 }
 
 impl Command for RenderChunk {
     fn apply(self, world: &mut bevy::prelude::World) {
-        let voxel_grid = world
-            .get_resource::<VoxelGrid>()
-            .expect("Voxel Grid not found");
+        let voxel_grid = Noise::generate_noise_map(16, self.chunk_coord, 0.5, 287546, 3, 0.5, 2.0);
 
         let size = voxel_grid.size;
 
         // March each cube in world
-        let mut positions: Vec<Vec3> = Vec::new();
+        let mut vertices: Vec<Vec3> = Vec::new();
 
         for z in 0..(size - 1) {
             for y in 0..(size - 1) {
                 for x in 0..(size - 1) {
-                    march_cube((x, y, z), voxel_grid, &mut positions);
+                    march_cube((x, y, z), &voxel_grid, &mut vertices);
                 }
             }
         }
 
         // render triangular mesh in the world
-        for i in 0..(positions.len() / 3) {
+        for i in 0..(vertices.len() / 3) {
             let i = i * 3;
-            if positions.get(i).is_none() {
+            if vertices.get(i).is_none() {
                 warn!("Cant find entry at index i = {i}");
                 break;
             }
@@ -107,9 +101,9 @@ impl Command for RenderChunk {
                 .get_resource_mut::<Assets<Mesh>>()
                 .expect("Cant find assets for 'Mesh'")
                 .add(Triangle3d::new(
-                    positions[i + 2],
-                    positions[i + 1],
-                    positions[i],
+                    vertices[i + 2],
+                    vertices[i + 1],
+                    vertices[i],
                 ));
 
             let material = world
@@ -119,6 +113,7 @@ impl Command for RenderChunk {
 
             world.spawn(PbrBundle {
                 mesh: triangle_mesh,
+                transform: Transform::from_translation(self.chunk_coord.as_vec3() * 15.0),
                 material,
                 ..default()
             });

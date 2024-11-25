@@ -1,8 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry::Vacant, HashMap};
 
 use bevy::{prelude::*, utils::warn};
 
-use crate::player::Player;
+use crate::{player::Player, settings::render::RenderSettings};
+
+use super::map_display::RenderChunk;
 
 pub const CHUNK_SIZE: u8 = 15;
 
@@ -19,10 +21,12 @@ impl Plugin for EndlessTerrainPlugin {
 pub struct ChunkMap(pub HashMap<IVec3, Chunk>);
 
 fn update_visible_chunks(
+    mut commands: Commands,
     mut chunk_map: ResMut<ChunkMap>,
+    render_cfg: Res<RenderSettings>,
     player_pos_q: Query<&Transform, With<Player>>,
 ) {
-    let render_distance = (1, 0);
+    let render_distance = render_cfg.render_distance;
 
     let Ok(player_t) = player_pos_q.get_single() else {
         warn(Err("Could not get Transform from player"));
@@ -35,8 +39,10 @@ fn update_visible_chunks(
     let curr_chunk_coord_y = (player_coord.y / CHUNK_SIZE as f32).floor() as i32;
     let curr_chunk_coord_z = (player_coord.z / CHUNK_SIZE as f32).floor() as i32;
 
-    let rd_xz = render_distance.0;
-    let rd_y = render_distance.1;
+    // Loop through all chunks in render_distance
+    // and add them to chunk_map
+    let rd_xz = render_distance.0 as i32;
+    let rd_y = render_distance.1 as i32;
     for y in -rd_y..=rd_y {
         for x in -rd_xz..=rd_xz {
             for z in -rd_xz..=rd_xz {
@@ -46,10 +52,10 @@ fn update_visible_chunks(
                     curr_chunk_coord_z + z,
                 );
 
-                chunk_map
-                    .0
-                    .entry(viewed_chunk_coord)
-                    .or_insert(Chunk::new(viewed_chunk_coord));
+                if let Vacant(e) = chunk_map.0.entry(viewed_chunk_coord) {
+                    e.insert(Chunk::new());
+                    commands.add(RenderChunk::new(viewed_chunk_coord));
+                }
             }
         }
     }
@@ -57,21 +63,18 @@ fn update_visible_chunks(
 
 #[derive(Debug)]
 pub struct Chunk {
-    pos: IVec3,
     pub visible: bool,
 }
 
 impl Chunk {
-    pub fn new(coord: IVec3) -> Self {
-        Self {
-            pos: coord * (CHUNK_SIZE as i32),
-            visible: false,
-        }
+    pub fn new() -> Self {
+        Self { visible: false }
     }
 }
 
 pub(super) fn update_chunk(
     mut chunk_map: ResMut<ChunkMap>,
+    render_cfg: Res<RenderSettings>,
     player_pos_q: Query<&Transform, With<Player>>,
 ) {
     let Ok(player_t) = player_pos_q.get_single() else {
@@ -82,9 +85,12 @@ pub(super) fn update_chunk(
         .floor()
         .as_ivec3();
 
+    let (render_distance_xz, render_distance_y) =
+        (render_cfg.render_distance.0, render_cfg.render_distance.1);
+
     for (chunk_coord, chunk) in chunk_map.0.iter_mut() {
-        let distance = (curr_chunk_coord - *chunk_coord).abs();
-        let distance_xz = i32::max(distance.x, distance.z);
-        chunk.visible = distance_xz <= 1 && distance.y <= 0;
+        let distance = (curr_chunk_coord - *chunk_coord).abs().as_uvec3();
+        let distance_xz = u32::max(distance.x, distance.z);
+        chunk.visible = distance_xz <= render_distance_xz && distance.y <= render_distance_y;
     }
 }

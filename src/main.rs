@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevyconf::BevyConfigPlugin;
 use debug::DebugPlugin;
@@ -24,13 +26,18 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    // light
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
+    // Directional sunlight
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: light_consts::lux::OVERCAST_DAY,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(8.0, 24.0, 8.0),
+        transform: Transform {
+            translation: Vec3::new(0., 2., 0.),
+            rotation: Quat::from_rotation_x(-PI / 4.0),
+            ..default()
+        },
         ..default()
     });
 }

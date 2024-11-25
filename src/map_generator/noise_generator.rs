@@ -1,4 +1,4 @@
-use bevy::prelude::Resource;
+use bevy::math::IVec3;
 use fastnoise_lite::FastNoiseLite;
 
 pub struct Noise;
@@ -7,6 +7,7 @@ impl Noise {
     /// Generate a 3-Dimensional noise map which is converted into a 1-Dimensional array
     pub fn generate_noise_map(
         size: usize,
+        chunk_coord: IVec3,
         mut scale: f32,
         seed: i32,
         octaves: u32,
@@ -14,7 +15,7 @@ impl Noise {
         lacunarity: f32,
     ) -> VoxelGrid {
         // Init empty (null) list of noise value
-        let mut noise_map: VoxelGrid = VoxelGrid::new(size);
+        let mut noise_map: VoxelGrid = VoxelGrid::new(size, chunk_coord);
 
         // NOTE: FNL from fastnoise_lite rust crate instead of godot
         let mut noise = FastNoiseLite::new();
@@ -37,10 +38,15 @@ impl Noise {
                     let mut frequency = 1f32;
                     let mut noise_height = 0f32;
 
+                    // Convert xz to i32
+                    let (x, z) = (x as i32, z as i32);
+
                     for _ in 0..octaves {
-                        // (x - half_width) let noise map zoom on the center when scale changes
-                        let sample_x = x as f32 / scale * frequency;
-                        let sample_z = z as f32 / scale * frequency;
+                        let offset_x = (x + chunk_coord.x * 16) as f32;
+                        let offset_z = (z + chunk_coord.z * 16) as f32;
+
+                        let sample_x = offset_x / scale * frequency;
+                        let sample_z = offset_z / scale * frequency;
 
                         // Get noise value and remapping it to 0..1 range
                         let mut noise_val = noise.get_noise_2d(sample_x, sample_z);
@@ -64,6 +70,7 @@ impl Noise {
         noise_map
     }
 
+    // NOTE: Only for testing
     fn scalar_field(x: f32, y: f32, z: f32) -> f32 {
         const RADIUS: f32 = 7.0;
 
@@ -71,7 +78,6 @@ impl Noise {
         const CENTER_Y: f32 = 8.0;
         const CENTER_Z: f32 = 8.0;
 
-        // NOTE: Only for testing
         // Function for defining a sphrere r^2 = x^2 + y^2 + z^2
         ((x - CENTER_X).powi(2) + (y - CENTER_Y).powi(2) + (z - CENTER_Z).powi(2)).sqrt() - RADIUS
     }
@@ -82,19 +88,21 @@ impl Noise {
 /// data: A 1D vector hold a list of value in a 3D space
 /// Accessing this require both asix x, y and z in this formular
 /// `x + size * (y + size * z)`
-#[derive(Default, Debug, Clone, Resource)]
+#[derive(Default, Debug, Clone)]
 pub struct VoxelGrid {
     data: Vec<f32>,
     pub size: usize,
+    chunk_coord: IVec3,
     min: f32,
     max: f32,
 }
 
 impl VoxelGrid {
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize, chunk_coord: IVec3) -> Self {
         Self {
             data: Vec::with_capacity(size.pow(3)),
             size,
+            chunk_coord,
             min: f32::MAX,
             max: f32::MIN,
         }
