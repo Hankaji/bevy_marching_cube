@@ -1,5 +1,6 @@
 use bevy::{
     asset::Assets,
+    color::palettes::css::ORANGE,
     ecs::world::Command,
     math::{u32, IVec3, Vec3},
     pbr::PbrBundle,
@@ -10,8 +11,11 @@ use bevy::{
         render_asset::RenderAssetUsages,
     },
 };
+use bevy_mod_billboard::BillboardTextBundle;
+use rand::Rng;
 
 use super::{
+    endless_terrain::CHUNK_SIZE,
     marching_table::{EDGES, TRIANGULATIONS, VERTICES},
     noise_generator::{Noise, VoxelGrid},
 };
@@ -74,9 +78,73 @@ impl RenderChunk {
 
 impl Command for RenderChunk {
     fn apply(self, world: &mut bevy::prelude::World) {
-        let voxel_grid = Noise::generate_noise_map(16, self.chunk_coord, 0.5, 287546, 3, 0.5, 2.0);
-
+        let voxel_grid = Noise::generate_noise_map(
+            CHUNK_SIZE as usize + 1,
+            self.chunk_coord,
+            0.5,
+            768,
+            3,
+            0.5,
+            2.0,
+        );
         let size = voxel_grid.size;
+
+        let cuboid_mesh = world
+            .get_resource_mut::<Assets<Mesh>>()
+            .expect("Cant find assets for 'Mesh'")
+            .add(Cuboid::from_length(0.2));
+
+        // let mut rand = rand::thread_rng();
+        // let rand_color = Color::srgb(
+        //     rand.gen_range(0.0..1.0),
+        //     rand.gen_range(0.0..1.0),
+        //     rand.gen_range(0.0..1.0),
+        // );
+
+        // for z in 0..size {
+        //     for y in 0..size {
+        //         for x in 0..size {
+        //             if voxel_grid.read(x, y, z) > 0.0 {
+        //                 continue;
+        //             }
+        //
+        //             let material = world
+        //                 .get_resource_mut::<Assets<StandardMaterial>>()
+        //                 .expect("Cant find assets for 'Material'")
+        //                 .add(Color::srgb(
+        //                     voxel_grid.read(x, y, z),
+        //                     voxel_grid.read(x, y, z),
+        //                     voxel_grid.read(x, y, z),
+        //                 ));
+        //
+        //             // Cubes
+        //             world.spawn(PbrBundle {
+        //                 mesh: cuboid_mesh.clone(),
+        //                 material,
+        //                 transform: Transform::from_translation(
+        //                     Vec3::new(x as f32, y as f32, z as f32)
+        //                         + (self.chunk_coord * 15).as_vec3(),
+        //                 ),
+        //                 ..default()
+        //             });
+        //
+        //             // world.spawn(BillboardTextBundle {
+        //             //     transform: Transform::from_xyz(x as f32, y as f32 + 0.1, z as f32)
+        //             //         .with_scale(Vec3::splat(0.0015) + (self.chunk_coord * 15).as_vec3()),
+        //             //     text: Text::from_sections([TextSection {
+        //             //         // value: color.to_string(),
+        //             //         value: format!("[{x} {y} {z}] | {}", voxel_grid.read(x, y, z)),
+        //             //         style: TextStyle {
+        //             //             font_size: 60.0,
+        //             //             color: ORANGE.into(),
+        //             //             ..Default::default()
+        //             //         },
+        //             //     }]),
+        //             //     ..Default::default()
+        //             // });
+        //         }
+        //     }
+        // }
 
         // March each cube in world
         let mut vertices: Vec<Vec3> = Vec::new();
@@ -113,7 +181,9 @@ impl Command for RenderChunk {
 
             world.spawn(PbrBundle {
                 mesh: triangle_mesh,
-                transform: Transform::from_translation(self.chunk_coord.as_vec3() * 15.0),
+                transform: Transform::from_translation(
+                    self.chunk_coord.as_vec3() * CHUNK_SIZE as f32,
+                ),
                 material,
                 ..default()
             });

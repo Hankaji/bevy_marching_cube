@@ -6,7 +6,7 @@ use crate::{player::Player, settings::render::RenderSettings};
 
 use super::map_display::RenderChunk;
 
-pub const CHUNK_SIZE: u8 = 15;
+pub const CHUNK_SIZE: u8 = 16;
 
 pub struct EndlessTerrainPlugin;
 

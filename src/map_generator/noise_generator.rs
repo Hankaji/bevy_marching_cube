@@ -1,6 +1,8 @@
 use bevy::math::IVec3;
 use fastnoise_lite::FastNoiseLite;
 
+use crate::map_generator::endless_terrain::CHUNK_SIZE;
+
 pub struct Noise;
 
 impl Noise {
@@ -17,7 +19,6 @@ impl Noise {
         // Init empty (null) list of noise value
         let mut noise_map: VoxelGrid = VoxelGrid::new(size, chunk_coord);
 
-        // NOTE: FNL from fastnoise_lite rust crate instead of godot
         let mut noise = FastNoiseLite::new();
         noise.set_noise_type(Some(fastnoise_lite::NoiseType::Perlin));
         noise.set_seed(Some(seed));
@@ -31,6 +32,7 @@ impl Noise {
         // let half_width = width as f32 / 2_f32;
         // let half_height = height as f32 / 2_f32;
 
+        let chunk_size = CHUNK_SIZE as i32;
         for z in 0..size {
             for y in 0..size {
                 for x in 0..size {
@@ -42,8 +44,8 @@ impl Noise {
                     let (x, z) = (x as i32, z as i32);
 
                     for _ in 0..octaves {
-                        let offset_x = (x + chunk_coord.x * 16) as f32;
-                        let offset_z = (z + chunk_coord.z * 16) as f32;
+                        let offset_x = (x + chunk_coord.x * chunk_size) as f32;
+                        let offset_z = (z + chunk_coord.z * chunk_size) as f32;
 
                         let sample_x = offset_x / scale * frequency;
                         let sample_z = offset_z / scale * frequency;
@@ -58,8 +60,9 @@ impl Noise {
                         frequency *= lacunarity;
                     }
 
-                    const MAX_HEIGHT: f32 = 20_f32;
-                    noise_height = (y) as f32 - (noise_height * MAX_HEIGHT);
+                    const MAX_HEIGHT: f32 = 50_f32;
+                    let y = (y as i32 + chunk_coord.y * chunk_size) as f32;
+                    noise_height = y - (noise_height * MAX_HEIGHT);
 
                     noise_map.push(noise_height);
                     // noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32));

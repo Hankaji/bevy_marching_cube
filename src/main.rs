@@ -14,6 +14,7 @@ mod fly_cam;
 mod map_generator;
 mod player;
 mod settings;
+mod utils;
 
 fn main() {
     App::new()
