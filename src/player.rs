@@ -21,7 +21,7 @@ fn spawn_player(mut commands: Commands) {
     // camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(8.0, 8.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(8.0, 24.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
         FlyCam,

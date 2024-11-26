@@ -60,7 +60,7 @@ impl Noise {
                         frequency *= lacunarity;
                     }
 
-                    const MAX_HEIGHT: f32 = 50_f32;
+                    const MAX_HEIGHT: f32 = 200_f32;
                     let y = (y as i32 + chunk_coord.y * chunk_size) as f32;
                     noise_height = y - (noise_height * MAX_HEIGHT);
 

@@ -8,7 +8,7 @@ pub struct RenderSettings {
 impl Default for RenderSettings {
     fn default() -> Self {
         Self {
-            render_distance: (0, 0),
+            render_distance: (8, 2),
         }
     }
 }
