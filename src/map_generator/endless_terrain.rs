@@ -54,7 +54,7 @@ fn update_visible_chunks(
 
                 if let Vacant(e) = chunk_map.0.entry(viewed_chunk_coord) {
                     e.insert(Chunk::new());
-                    commands.add(RenderChunk::new(viewed_chunk_coord));
+                    // commands.add(RenderChunk::new(viewed_chunk_coord));
                 }
             }
         }

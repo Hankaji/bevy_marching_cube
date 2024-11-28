@@ -73,8 +73,12 @@ impl Noise {
         noise_map
     }
 
+    fn density_noise(x: f32, y: f32, z: f32) -> f32 {
+        unimplemented!()
+    }
+
     // NOTE: Only for testing
-    fn scalar_field(x: f32, y: f32, z: f32) -> f32 {
+    fn sphere_density(x: f32, y: f32, z: f32) -> f32 {
         const RADIUS: f32 = 7.0;
 
         const CENTER_X: f32 = 8.0;

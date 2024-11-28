@@ -35,7 +35,6 @@ fn setup(mut cfg_store: ResMut<GizmoConfigStore>) {
 struct GizmoDebug;
 
 fn chunk_gizmos(mut gizmo: Gizmos, mut chunk_gizmos: Gizmos<GizmoDebug>, chunk_map: Res<ChunkMap>) {
-    return;
     let chunk_size = CHUNK_SIZE as f32;
 
     #[allow(clippy::never_loop)]

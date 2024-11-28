@@ -2,7 +2,7 @@ use bevy::{
     asset::Assets,
     color::palettes::css::ORANGE,
     ecs::world::Command,
-    math::{u32, IVec3, Vec3},
+    math::{f32, u32, IVec3, Vec3},
     pbr::PbrBundle,
     prelude::*,
     reflect::List,
@@ -19,7 +19,14 @@ use super::{
     endless_terrain::CHUNK_SIZE,
     marching_table::{EDGES, TRIANGULATIONS, VERTICES},
     noise_generator::{Noise, VoxelGrid},
+    MapGenerator,
 };
+
+/// Perform a linear interpolation along the edge
+fn interpolate_verts(p1: Vec3, p2: Vec3, s1: f32, s2: f32, isovalue: f32) -> Vec3 {
+    let t = (isovalue - s1) / (s2 - s1);
+    p1 + (t * (p2 - p1))
+}
 
 pub fn march_cube(
     (x, y, z): (usize, usize, usize),
@@ -41,11 +48,27 @@ pub fn march_cube(
         let (xb, yb, zb) = VERTICES[vertex_positions.1];
 
         // Calculate the actual in-world position of 2 edge's vertices
-        let pos_a = Vec3::new((x + xa) as f32, (y + ya) as f32, (z + za) as f32);
-        let pos_b = Vec3::new((x + xb) as f32, (y + yb) as f32, (z + zb) as f32);
+        let corner_pos_a = UVec3::new((x + xa) as u32, (y + ya) as u32, (z + za) as u32);
+        let corner_pos_b = UVec3::new((x + xb) as u32, (y + yb) as u32, (z + zb) as u32);
+
+        // Read value of 2 points
+        let sa = voxel_grid.read(
+            corner_pos_a.x as usize,
+            corner_pos_a.y as usize,
+            corner_pos_a.z as usize,
+        );
+        let sb = voxel_grid.read(
+            corner_pos_b.x as usize,
+            corner_pos_b.y as usize,
+            corner_pos_b.z as usize,
+        );
+
+        // get interpolation point
+        // let midpoint =
+        //     interpolate_verts(corner_pos_a.as_vec3(), corner_pos_b.as_vec3(), sa, sb, 0.0);
 
         // Find the midpoint of the edge
-        let midpoint = (pos_a + pos_b) / 2.0;
+        let midpoint = (corner_pos_a + corner_pos_b).as_vec3() / 2.0;
 
         positions.push(midpoint);
     }
@@ -79,22 +102,19 @@ impl RenderChunk {
 
 impl Command for RenderChunk {
     fn apply(self, world: &mut bevy::prelude::World) {
-        let voxel_grid = Noise::generate_noise_map(
-            CHUNK_SIZE as usize + 1,
-            self.chunk_coord,
-            2.0,
-            297543,
-            3,
-            0.5,
-            2.0,
-        );
+        let voxel_grid = world
+            .get_resource::<MapGenerator>()
+            .expect("Could not find MapGenerator")
+            .generate_noise(self.chunk_coord, 16);
+        // .test(self.chunk_coord, 32);
+
         let size = voxel_grid.size;
 
         // let cuboid_mesh = world
         //     .get_resource_mut::<Assets<Mesh>>()
         //     .expect("Cant find assets for 'Mesh'")
         //     .add(Cuboid::from_length(0.2));
-
+        //
         // let mut rand = rand::thread_rng();
         // let rand_color = Color::srgb(
         //     rand.gen_range(0.0..1.0),
@@ -105,9 +125,9 @@ impl Command for RenderChunk {
         // for z in 0..size {
         //     for y in 0..size {
         //         for x in 0..size {
-        //             if voxel_grid.read(x, y, z) > 0.0 {
-        //                 continue;
-        //             }
+        //             // if voxel_grid.read(x, y, z) > 0.0 {
+        //             //     continue;
+        //             // }
         //
         //             let material = world
         //                 .get_resource_mut::<Assets<StandardMaterial>>()
@@ -119,15 +139,15 @@ impl Command for RenderChunk {
         //                 ));
         //
         //             // Cubes
-        //             world.spawn(PbrBundle {
-        //                 mesh: cuboid_mesh.clone(),
-        //                 material,
-        //                 transform: Transform::from_translation(
-        //                     Vec3::new(x as f32, y as f32, z as f32)
-        //                         + (self.chunk_coord * 15).as_vec3(),
-        //                 ),
-        //                 ..default()
-        //             });
+        //             // world.spawn(PbrBundle {
+        //             //     mesh: cuboid_mesh.clone(),
+        //             //     material,
+        //             //     transform: Transform::from_translation(
+        //             //         Vec3::new(x as f32, y as f32, z as f32)
+        //             //             + (self.chunk_coord * 15).as_vec3(),
+        //             //     ),
+        //             //     ..default()
+        //             // });
         //
         //             // world.spawn(BillboardTextBundle {
         //             //     transform: Transform::from_xyz(x as f32, y as f32 + 0.1, z as f32)
@@ -146,6 +166,7 @@ impl Command for RenderChunk {
         //         }
         //     }
         // }
+        // return;
 
         // March each cube in world
         let mut vertices: Vec<Vec3> = Vec::new();
