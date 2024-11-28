@@ -106,7 +106,6 @@ impl Command for RenderChunk {
             .get_resource::<MapGenerator>()
             .expect("Could not find MapGenerator")
             .generate_noise(self.chunk_coord, 16);
-        // .test(self.chunk_coord, 32);
 
         let size = voxel_grid.size;
 

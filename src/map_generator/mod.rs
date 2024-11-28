@@ -29,8 +29,8 @@ fn ready(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // let map_gen = MapGenerator::new(NoiseDensity::default());
-    let map_gen = MapGenerator::new(SphereNoiseDensity::new(7.0));
+    let map_gen = MapGenerator::new(NoiseDensity::default());
+    // let map_gen = MapGenerator::new(SphereNoiseDensity::new(18.0, (12.0, 12.0, 12.0).into()));
     commands.insert_resource(map_gen);
 
     commands.add(RenderChunk::new(IVec3::new(0, 0, 0)));
@@ -67,74 +67,12 @@ impl MapGenerator {
         for z in 0..grid_size {
             for y in 0..grid_size {
                 for x in 0..grid_size {
-                    // let offset = (chunk_coord * size as i32).as_vec3();
-                    // let x = x as f32 + offset.x;
-                    // let y = y as f32 + offset.y;
-                    // let z = z as f32 + offset.z;
-
-                    let x = x as f32;
-                    let y = y as f32;
-                    let z = z as f32;
+                    let offset = (chunk_coord * size as i32).as_vec3();
+                    let x = x as f32 + offset.x;
+                    let y = y as f32 + offset.y;
+                    let z = z as f32 + offset.z;
 
                     noise_map.push(self.generation_type.get_scalar(x, y, z));
-                }
-            }
-        }
-
-        noise_map
-    }
-
-    pub fn test(&self, chunk_coord: IVec3, size: usize) -> VoxelGrid {
-        // Init empty (null) list of noise value
-        let mut noise_map: VoxelGrid = VoxelGrid::new(size, chunk_coord);
-
-        let mut noise = FastNoiseLite::new();
-        noise.set_noise_type(Some(fastnoise_lite::NoiseType::Perlin));
-        noise.set_seed(Some(69));
-        noise.set_frequency(Some(0.005));
-
-        let scale = 1.0;
-        let octaves = 3;
-        let persistance = 0.5;
-        let lacunarity = 2.0;
-
-        // let half_width = width as f32 / 2_f32;
-        // let half_height = height as f32 / 2_f32;
-
-        let chunk_size = CHUNK_SIZE as i32;
-        for z in 0..size {
-            for y in 0..size {
-                for x in 0..size {
-                    let mut amplitude = 1f32;
-                    let mut frequency = 1f32;
-                    let mut noise_height = 0f32;
-
-                    // Convert xz to i32
-                    let (x, z) = (x as i32, z as i32);
-
-                    for _ in 0..octaves {
-                        let offset_x = (x + chunk_coord.x * chunk_size) as f32;
-                        let offset_z = (z + chunk_coord.z * chunk_size) as f32;
-
-                        let sample_x = offset_x / scale * frequency;
-                        let sample_z = offset_z / scale * frequency;
-
-                        // Get noise value and remapping it to 0..1 range
-                        let mut noise_val = noise.get_noise_2d(sample_x, sample_z);
-                        noise_val = (noise_val + 1.) / 2.;
-
-                        noise_height = noise_val * amplitude;
-
-                        amplitude *= persistance;
-                        frequency *= lacunarity;
-                    }
-
-                    const MAX_HEIGHT: f32 = 200_f32;
-                    let y = (y as i32 + chunk_coord.y * chunk_size) as f32;
-                    noise_height = y - (noise_height * MAX_HEIGHT);
-
-                    noise_map.push(noise_height);
-                    // noise_map.push(Self::scalar_field(x as f32, y as f32, z as f32));
                 }
             }
         }
@@ -201,7 +139,7 @@ impl NoiseGenerator for NoiseDensity {
             frequency *= self.lacunarity;
         }
 
-        // noise_height = y - (noise_height * 20.0);
+        noise_height = y - (noise_height * 200.0);
         noise_height
     }
 }
