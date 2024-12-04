@@ -1,10 +1,14 @@
-use std::collections::{hash_map::Entry::Vacant, HashMap};
+use std::{
+    collections::{hash_map::Entry::Vacant, HashMap},
+    time::Instant,
+};
 
 use bevy::{prelude::*, utils::warn};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::{player::Player, settings::render::RenderSettings};
 
-use super::map_display::RenderChunk;
+use super::map_display::{RenderChunk, RenderMode};
 
 pub const CHUNK_SIZE: u8 = 16;
 
@@ -22,6 +26,7 @@ pub struct ChunkMap(pub HashMap<IVec3, Chunk>);
 
 fn update_visible_chunks(
     mut commands: Commands,
+    mut commands_par: ParallelCommands,
     mut chunk_map: ResMut<ChunkMap>,
     render_cfg: Res<RenderSettings>,
     player_pos_q: Query<&Transform, With<Player>>,
@@ -41,6 +46,8 @@ fn update_visible_chunks(
 
     // Loop through all chunks in render_distance
     // and add them to chunk_map
+    println!("--------------------------------------------------");
+    let time = Instant::now();
     let rd_xz = render_distance.0 as i32;
     let rd_y = render_distance.1 as i32;
     for y in -rd_y..=rd_y {
@@ -54,11 +61,16 @@ fn update_visible_chunks(
 
                 if let Vacant(e) = chunk_map.0.entry(viewed_chunk_coord) {
                     e.insert(Chunk::new());
-                    commands.add(RenderChunk::new(viewed_chunk_coord));
+                    commands.add(RenderChunk::new(
+                        viewed_chunk_coord,
+                        RenderMode::MarchingCube,
+                    ));
                 }
             }
         }
     }
+    let elapsed = time.elapsed();
+    println!("Time generated chunks (8x8x8): {:.2?}", elapsed);
 }
 
 #[derive(Debug)]

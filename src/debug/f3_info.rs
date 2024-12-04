@@ -1,9 +1,19 @@
-use bevy::{color::palettes::css::BLACK, prelude::*};
+use bevy::{
+    color::palettes::{
+        css::{BLACK, GREEN, RED, YELLOW},
+        tailwind::GREEN_500,
+    },
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 
 use crate::player::Player;
 
 #[derive(Component)]
 pub struct F3Info;
+
+#[derive(Component)]
+pub struct FpsText;
 
 #[derive(Component)]
 pub struct PlayerCoordF3;
@@ -34,12 +44,23 @@ fn dispay_info(mut commands: Commands) {
         })
         .insert(F3Info)
         .with_children(|builder| {
+            // -------------------- FPS --------------------
+            builder.spawn((
+                // Create a TextBundle that has a Text with a list of sections.
+                TextBundle::from_sections([
+                    TextSection::new("FPS: ", style.clone()),
+                    TextSection::from_style(style.clone()),
+                ])
+                .with_background_color(text_bg_color),
+                FpsText,
+            ));
+
             // -------------------- Chunk coordinate --------------------
             builder.spawn((
                 // Create a TextBundle that has a Text with a list of sections.
                 TextBundle::from_sections([
                     TextSection::new("Player coordinate [", style.clone()),
-                    TextSection::new("0 0 0", style.clone()),
+                    TextSection::from_style(style.clone()),
                     TextSection::new("]", style.clone()),
                 ])
                 .with_background_color(text_bg_color),
@@ -70,6 +91,24 @@ pub(super) fn toggle_text_visibility(
             commands.entity(f3_info_e).despawn_recursive();
         } else {
             dispay_info(commands);
+        }
+    }
+}
+
+pub(super) fn update_fps(
+    diagnostics: Res<DiagnosticsStore>,
+    mut fps_text_q: Query<&mut Text, With<FpsText>>,
+) {
+    if let Ok(mut fps_text) = fps_text_q.get_single_mut() {
+        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(v) = fps.smoothed() {
+                fps_text.sections[1].value = format!("{v:.2}");
+                fps_text.sections[1].style.color = match v {
+                    ..30.0 => RED.into(),
+                    30.0..45.0 => YELLOW.into(),
+                    _ => GREEN_500.into(),
+                }
+            }
         }
     }
 }

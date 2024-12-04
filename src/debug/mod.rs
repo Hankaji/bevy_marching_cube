@@ -1,10 +1,14 @@
 use bevy::{
     color::palettes::css::{BLUE, GREEN, RED, WHITE},
+    diagnostic::FrameTimeDiagnosticsPlugin,
     prelude::*,
 };
-use f3_info::{toggle_text_visibility, update_curr_chunk, update_player_position};
+use f3_info::{toggle_text_visibility, update_curr_chunk, update_fps, update_player_position};
 
-use crate::map_generator::endless_terrain::{ChunkMap, CHUNK_SIZE};
+use crate::{
+    map_generator::endless_terrain::{ChunkMap, CHUNK_SIZE},
+    settings::debug::DebugSetting,
+};
 
 mod f3_info;
 
@@ -12,7 +16,8 @@ pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.init_gizmo_group::<GizmoDebug>()
+        app.add_plugins(FrameTimeDiagnosticsPlugin)
+            .init_gizmo_group::<GizmoDebug>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -21,6 +26,7 @@ impl Plugin for DebugPlugin {
                     toggle_text_visibility,
                     update_curr_chunk,
                     update_player_position,
+                    update_fps,
                 ),
             );
     }
@@ -34,7 +40,15 @@ fn setup(mut cfg_store: ResMut<GizmoConfigStore>) {
 #[derive(Default, Reflect, GizmoConfigGroup)]
 struct GizmoDebug;
 
-fn chunk_gizmos(mut gizmo: Gizmos, mut chunk_gizmos: Gizmos<GizmoDebug>, chunk_map: Res<ChunkMap>) {
+fn chunk_gizmos(
+    mut gizmo: Gizmos,
+    mut chunk_gizmos: Gizmos<GizmoDebug>,
+    chunk_map: Res<ChunkMap>,
+    cfg: Res<DebugSetting>,
+) {
+    if !cfg.display_chunk_gizmos {
+        return;
+    }
     let chunk_size = CHUNK_SIZE as f32;
 
     #[allow(clippy::never_loop)]

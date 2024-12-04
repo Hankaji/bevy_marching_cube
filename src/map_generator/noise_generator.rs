@@ -1,3 +1,5 @@
+use std::ops::RangeInclusive;
+
 use bevy::math::IVec3;
 use fastnoise_lite::FastNoiseLite;
 
@@ -124,6 +126,14 @@ impl VoxelGrid {
         }
 
         self.data.push(value);
+    }
+
+    pub fn min_max_range(&self) -> RangeInclusive<f32> {
+        self.min..=self.max
+    }
+
+    pub fn normalize_value(&self, v: f32) -> f32 {
+        (v - self.min) / (self.max - self.min)
     }
 
     pub fn normalize(&mut self) {
