@@ -156,8 +156,6 @@ impl RenderChunk {
 
 impl Command for RenderChunk {
     fn apply(self, world: &mut bevy::prelude::World) {
-        // TODO: Only for testing parallel, remove later
-        sleep(Duration::from_millis(100));
         let voxel_grid = world
             .get_resource::<MapGenerator>()
             .expect("Could not find MapGenerator")
@@ -197,30 +195,10 @@ impl Command for RenderChunk {
             normals.push(normal);
             normals.push(normal);
             normals.push(normal);
-
-            // color.push(Color::srgb_u8(0, 255, 0).to_srgba().to_vec4());
-            // color.push(Color::srgb_u8(255, 0, 0).to_srgba().to_vec4());
-            // color.push(Color::srgb_u8(0, 0, 255).to_srgba().to_vec4());
         }
-        // println!("VoxelGrid min-max: {:?}", voxel_grid.min_max_range());
-        // vertices
-        //     .par_iter()
-        //     .chunks(3)
-        //     .zip(normals.par_iter_mut().chunks(3))
-        //     .for_each(|mut v_n_3| {
-        //         let vertices3 = v_n_3.0;
-        //         let normals3 = &mut v_n_3.1;
-        //         let (v0, v1, v2) = (vertices3[0], vertices3[1], vertices3[2]);
-        //
-        //         let a = *v1 - *v2;
-        //         let b = *v0 - *v2;
-        //         let normal = a.cross(b);
-        //         normals3.iter_mut().for_each(|n| **n = normal);
-        //     });
 
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
         mesh.insert_indices(Indices::U32(indices));
-        // mesh.compute_normals();
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, color);
 
