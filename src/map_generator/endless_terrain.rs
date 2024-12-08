@@ -20,10 +20,7 @@ use crate::{
     map_generator::map_display::march_cube, player::Player, settings::render::RenderSettings,
 };
 
-use super::{
-    map_display::{RenderChunk, RenderMode},
-    MapGenerator,
-};
+use super::{map_display::render_chunk, MapGenerator};
 
 pub const CHUNK_SIZE: u8 = 16;
 
@@ -77,14 +74,6 @@ fn update_visible_chunks(
                     curr_chunk_coord_z + z,
                 );
 
-                // if let Vacant(e) = chunk_map.0.entry(viewed_chunk_coord) {
-                //     e.insert(Chunk::new());
-                //     commands.add(RenderChunk::new(
-                //         viewed_chunk_coord,
-                //         RenderMode::MarchingCube,
-                //     ));
-                // }
-
                 if let Vacant(e) = chunk_map.0.entry(viewed_chunk_coord) {
                     e.insert(Chunk::new());
                 } else {
@@ -95,72 +84,10 @@ fn update_visible_chunks(
                 let task = thread_pool.spawn(async move {
                     let mut cmd_queue = CommandQueue::default();
                     cmd_queue.push(move |world: &mut World| {
-                        let voxel_grid = world
-                            .get_resource::<MapGenerator>()
-                            .expect("Could not find MapGenerator")
-                            .generate_noise(viewed_chunk_coord, 16);
-
-                        let size = voxel_grid.size;
-
-                        // March each cube in world
-                        let mut vertices: Vec<Vec3> = Vec::new();
-                        let mut color: Vec<Vec4> = Vec::with_capacity(vertices.len());
-
-                        for z in 0..(size - 1) {
-                            for y in 0..(size - 1) {
-                                for x in 0..(size - 1) {
-                                    march_cube((x, y, z), &voxel_grid, &mut vertices, &mut color);
-                                }
-                            }
-                        }
-
-                        let mut mesh = Mesh::new(
-                            PrimitiveTopology::TriangleList,
-                            RenderAssetUsages::RENDER_WORLD,
-                        );
-
-                        let mut normals: Vec<Vec3> = Vec::with_capacity(vertices.len());
-                        let mut indices: Vec<u32> = Vec::with_capacity(vertices.len());
-                        for i in 0..(vertices.len() / 3) {
-                            let i = i as u32 * 3;
-                            indices.push(i + 2);
-                            indices.push(i + 1);
-                            indices.push(i);
-
-                            let i = i as usize;
-                            let a = vertices[i + 1] - vertices[i + 2];
-                            let b = vertices[i] - vertices[i + 2];
-                            let normal = a.cross(b);
-                            normals.push(normal);
-                            normals.push(normal);
-                            normals.push(normal);
-                        }
-
-                        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-                        mesh.insert_indices(Indices::U32(indices));
-                        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, color);
-
-                        let triangle_mesh = world
-                            .get_resource_mut::<Assets<Mesh>>()
-                            .expect("Cant find assets for 'Mesh'")
-                            .add(mesh);
-
-                        let material = world
-                            .get_resource_mut::<Assets<StandardMaterial>>()
-                            .expect("Cant find assets for 'Material'")
-                            .add(Color::srgb(1., 1., 1.));
+                        let render_entity = render_chunk(world, entity, viewed_chunk_coord);
 
                         world
-                            .entity_mut(entity)
-                            .insert(PbrBundle {
-                                mesh: triangle_mesh,
-                                transform: Transform::from_translation(
-                                    viewed_chunk_coord.as_vec3() * CHUNK_SIZE as f32,
-                                ),
-                                material,
-                                ..default()
-                            })
+                            .entity_mut(render_entity)
                             // Task is complete, so remove task component from entity
                             .remove::<ComputeTransform>();
                     });

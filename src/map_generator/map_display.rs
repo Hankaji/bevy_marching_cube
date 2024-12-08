@@ -121,12 +121,6 @@ fn get_triangulation((x, y, z): (usize, usize, usize), voxel_grid: &VoxelGrid) -
 }
 
 #[derive(Debug, Default)]
-pub struct RenderChunk {
-    chunk_coord: IVec3,
-    render_modes: Vec<RenderMode>,
-}
-
-#[derive(Debug, Default)]
 pub enum RenderMode {
     #[default]
     MarchingCube,
@@ -145,78 +139,74 @@ impl IntoIterator for RenderMode {
     }
 }
 
-impl RenderChunk {
-    pub fn new(chunk_coord: IVec3, render_modes: impl IntoIterator<Item = RenderMode>) -> Self {
-        Self {
-            chunk_coord,
-            render_modes: render_modes.into_iter().collect(),
-        }
-    }
-}
+pub fn render_chunk(
+    world: &mut bevy::prelude::World,
+    entity: Entity,
+    chunk_coord: IVec3,
+) -> Entity {
+    let voxel_grid = world
+        .get_resource::<MapGenerator>()
+        .expect("Could not find MapGenerator")
+        .generate_noise(chunk_coord, 16);
 
-impl Command for RenderChunk {
-    fn apply(self, world: &mut bevy::prelude::World) {
-        let voxel_grid = world
-            .get_resource::<MapGenerator>()
-            .expect("Could not find MapGenerator")
-            .generate_noise(self.chunk_coord, 16);
+    let size = voxel_grid.size;
 
-        let size = voxel_grid.size;
+    // March each cube in world
+    let mut vertices: Vec<Vec3> = Vec::new();
+    let mut color: Vec<Vec4> = Vec::with_capacity(vertices.len());
 
-        // March each cube in world
-        let mut vertices: Vec<Vec3> = Vec::new();
-        let mut color: Vec<Vec4> = Vec::with_capacity(vertices.len());
-
-        for z in 0..(size - 1) {
-            for y in 0..(size - 1) {
-                for x in 0..(size - 1) {
-                    march_cube((x, y, z), &voxel_grid, &mut vertices, &mut color);
-                }
+    for z in 0..(size - 1) {
+        for y in 0..(size - 1) {
+            for x in 0..(size - 1) {
+                march_cube((x, y, z), &voxel_grid, &mut vertices, &mut color);
             }
         }
+    }
 
-        let mut mesh = Mesh::new(
-            PrimitiveTopology::TriangleList,
-            RenderAssetUsages::RENDER_WORLD,
-        );
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
 
-        let mut normals: Vec<Vec3> = Vec::with_capacity(vertices.len());
-        let mut indices: Vec<u32> = Vec::with_capacity(vertices.len());
-        for i in 0..(vertices.len() / 3) {
-            let i = i as u32 * 3;
-            indices.push(i + 2);
-            indices.push(i + 1);
-            indices.push(i);
+    let mut normals: Vec<Vec3> = Vec::with_capacity(vertices.len());
+    let mut indices: Vec<u32> = Vec::with_capacity(vertices.len());
+    for i in 0..(vertices.len() / 3) {
+        let i = i as u32 * 3;
+        indices.push(i + 2);
+        indices.push(i + 1);
+        indices.push(i);
 
-            let i = i as usize;
-            let a = vertices[i + 1] - vertices[i + 2];
-            let b = vertices[i] - vertices[i + 2];
-            let normal = a.cross(b);
-            normals.push(normal);
-            normals.push(normal);
-            normals.push(normal);
-        }
+        let i = i as usize;
+        let a = vertices[i + 1] - vertices[i + 2];
+        let b = vertices[i] - vertices[i + 2];
+        let normal = a.cross(b);
+        normals.push(normal);
+        normals.push(normal);
+        normals.push(normal);
+    }
 
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-        mesh.insert_indices(Indices::U32(indices));
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, color);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+    mesh.insert_indices(Indices::U32(indices));
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, color);
 
-        let triangle_mesh = world
-            .get_resource_mut::<Assets<Mesh>>()
-            .expect("Cant find assets for 'Mesh'")
-            .add(mesh);
+    let triangle_mesh = world
+        .get_resource_mut::<Assets<Mesh>>()
+        .expect("Cant find assets for 'Mesh'")
+        .add(mesh);
 
-        let material = world
-            .get_resource_mut::<Assets<StandardMaterial>>()
-            .expect("Cant find assets for 'Material'")
-            .add(Color::srgb(1., 1., 1.));
+    let material = world
+        .get_resource_mut::<Assets<StandardMaterial>>()
+        .expect("Cant find assets for 'Material'")
+        .add(Color::srgb(1., 1., 1.));
 
-        world.spawn(PbrBundle {
+    world
+        .entity_mut(entity)
+        .insert(PbrBundle {
             mesh: triangle_mesh,
-            transform: Transform::from_translation(self.chunk_coord.as_vec3() * CHUNK_SIZE as f32),
+            transform: Transform::from_translation(chunk_coord.as_vec3() * CHUNK_SIZE as f32),
             material,
             ..default()
-        });
-    }
+        })
+        .id()
 }
